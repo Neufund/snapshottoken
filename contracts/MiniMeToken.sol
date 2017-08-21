@@ -3,7 +3,7 @@ pragma solidity ^0.4.13;
 import './Controlled.sol';
 import './ITokenController.sol';
 import './IERC20Token.sol';
-import './ApproveAndCallFallback.sol';
+import './IApproveAndCallFallback.sol';
 import './MiniMeTokenFactory.sol';
 import './SnapshotTokenBase.sol';
 import './AllowanceBase.sol';
@@ -164,13 +164,17 @@ contract MiniMeToken is
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return True if the function call was successful
     /// Overrides the public function in AllowanceBase
-    function approveAndCall(address _spender, uint256 _amount, bytes _extraData)
+    function approveAndCall(
+        IApproveAndCallFallback _spender,
+        uint256 _amount,
+        bytes _extraData
+    )
         public
         returns (bool success)
     {
         require(approve(_spender, _amount));
 
-        ApproveAndCallFallBack(_spender).receiveApproval(
+        IApproveAndCallFallback(_spender).receiveApproval(
             msg.sender,
             _amount,
             this,
@@ -274,7 +278,7 @@ contract MiniMeToken is
     /// @param _amount The amount of tokens to be transferred
     /// @return True if the transfer was successful
     /// Implements the abstract function from AllowanceBase
-    function allowanceBaseTransfer(address _from, address _to, uint _amount)
+    function mixinAllowanceTransfer(address _from, address _to, uint _amount)
         internal
         returns(bool)
     {

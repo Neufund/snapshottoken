@@ -1,8 +1,10 @@
 pragma solidity ^0.4.13;
 
-import './ApproveAndCallFallback.sol';
+import './IApproveAndCallFallback.sol';
+import './MixinAllowance.sol';
 
-contract AllowanceBase {
+// Consumes MixinAllowance
+contract AllowanceBase is MixinAllowance {
 
 ////////////////
 // State
@@ -75,11 +77,16 @@ contract AllowanceBase {
     /// @param _spender The address of the contract able to transfer the tokens
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return True if the function call was successful
-    function approveAndCall(address _spender, uint256 _amount, bytes _extraData
-    ) returns (bool success) {
+    function approveAndCall(
+        IApproveAndCallFallback _spender,
+        uint256 _amount,
+        bytes _extraData
+    )
+        returns (bool success)
+    {
         require(approve(_spender, _amount));
 
-        ApproveAndCallFallBack(_spender).receiveApproval(
+        _spender.receiveApproval(
             msg.sender,
             _amount,
             this,
@@ -95,7 +102,11 @@ contract AllowanceBase {
     /// @param _to The address of the recipient
     /// @param _amount The amount of tokens to be transferred
     /// @return True if the transfer was successful
-    function transferFrom(address _from, address _to, uint256 _amount)
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _amount
+    )
         public
         returns (bool success)
     {
@@ -105,15 +116,7 @@ contract AllowanceBase {
         }
 
         allowed[_from][msg.sender] -= _amount;
-        return allowanceBaseTransfer(_from, _to, _amount);
+        return mixinAllowanceTransfer(_from, _to, _amount);
     }
-
-////////////////
-// Abstract functions
-////////////////
-
-    function allowanceBaseTransfer(address from, address to, uint256 amount)
-        internal
-        returns (bool);
 
 }

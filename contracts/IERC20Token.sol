@@ -1,5 +1,6 @@
 pragma solidity ^0.4.13;
 
+import './IApproveAndCallFallback.sol';
 
 // is IBasicToken
 interface IERC20Token {
@@ -8,7 +9,10 @@ interface IERC20Token {
 // Events
 ////////////////
 
-    event Transfer(address indexed _from, address indexed _to, uint256 _amount);
+    event Transfer(
+        address indexed _from,
+        address indexed _to,
+        uint256 _amount);
 
 ///////////////////
 // ERC20 Basic Methods
@@ -63,7 +67,11 @@ interface IERC20Token {
     /// @param _spender The address of the contract able to transfer the tokens
     /// @param _amount The amount of tokens to be approved for transfer
     /// @return True if the function call was successful
-    function approveAndCall(address _spender, uint256 _amount, bytes _extraData)
+    function approveAndCall(
+        IApproveAndCallFallback _spender,
+        uint256 _amount,
+        bytes _extraData
+    )
         public
         returns (bool success);
 
