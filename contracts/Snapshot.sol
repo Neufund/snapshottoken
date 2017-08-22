@@ -1,9 +1,6 @@
 pragma solidity ^0.4.13;
 
-import './MPolicy.sol';
-
-// Snapshot consumes MPolicy
-contract Snapshot is MPolicy {
+contract Snapshot {
 
 ////////////////
 // Types
@@ -22,10 +19,60 @@ contract Snapshot is MPolicy {
     }
 
 ////////////////
+// State
+////////////////
+
+    uint256 internal nextSnapshot;
+
+    bool internal nextSnapshotModified;
+
+////////////////
 // Events
 ////////////////
 
     event SnapshotCreated(uint256 snapshot);
+
+////////////////
+// Constructor
+////////////////
+
+    function Snapshot(uint256 snapshotStart)
+        internal
+    {
+        require(snapshotStart < 2**256 - 1);
+
+        // We can start at non-zero counter so the snapshots can
+        // continue from some other contract's snapshots. This is
+        // useful for forking.
+        nextSnapshot = snapshotStart + 1;
+        nextSnapshotModified = false;
+    }
+
+////////////////
+// Public functions
+////////////////
+
+    function createSnapshot()
+        public
+        returns (uint256)
+    {
+        require(nextSnapshot < 2**256 - 1);
+
+        // If no modifications have been made, the previous snapshot
+        // is identical to the current one. We can return the previous
+        // entry.
+        // TODO: Is this optimization worth it? It only avoids one
+        // storage counter increment.
+        if (!nextSnapshotModified) {
+            return nextSnapshot - 1;
+        }
+
+        uint256 snapshot = nextSnapshot;
+        nextSnapshot += 1;
+        SnapshotCreated(snapshot);
+        nextSnapshotModified = false;
+        return snapshot;
+    }
 
 ////////////////
 // Internal functions
@@ -49,7 +96,7 @@ contract Snapshot is MPolicy {
         constant
         returns (bool)
     {
-        require(_snapshot < mNextSnapshotId());
+        require(_snapshot < nextSnapshot);
         return values.length > 0 && values[0].snapshot <= _snapshot;
     }
 
@@ -82,7 +129,7 @@ contract Snapshot is MPolicy {
         constant
         returns (uint)
     {
-        require(_snapshot < mNextSnapshotId());
+        require(_snapshot < nextSnapshot);
 
         // Empty value
         if (values.length == 0) {
@@ -126,12 +173,9 @@ contract Snapshot is MPolicy {
     {
         // TODO: simplify or break into smaller functions
 
-        uint256 nextSnapshot = mNextSnapshotId();
-
         // Always create a new entry if there currently is no value
         bool empty = values.length == 0;
         if (empty) {
-
             // Create a new entry
             values.push(Values({
                 snapshot: nextSnapshot,
@@ -139,7 +183,9 @@ contract Snapshot is MPolicy {
             }));
 
             // Flag next snapshot as modified
-            mFlagSnapshotModified();
+            if (!nextSnapshotModified) {
+                nextSnapshotModified = true;
+            }
             return;
         }
 
@@ -160,7 +206,9 @@ contract Snapshot is MPolicy {
             }));
 
             // Flag next snapshot as modified
-            mFlagSnapshotModified();
+            if (!nextSnapshotModified) {
+                nextSnapshotModified = true;
+            }
 
         } else { // We are updating the nextSnapshot
 
